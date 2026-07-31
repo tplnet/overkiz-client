@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { EventEmitter } from 'events';
 import { logger, interceptor } from './Client';
 import https from 'https';
+import bonjour from 'bonjour';
 
 export default class ApiClient extends EventEmitter {
     public readonly client: AxiosInstance = axios.create();
@@ -155,17 +156,16 @@ export class LocalApiClient extends ApiClient {
     }
 
     async findGatewayIP(gatewayPin: string) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const mdns = require('bonjour');
+        const mdns = bonjour();
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 reject('Search timeout after 10 seconds');
             }, 10 * 1000);
-            mdns().find(
+            mdns.find(
                 { type: 'kizboxdev' },
                 (service) => {
                     logger.debug('Gateway service found:', service.name);
-                    if (service.txt.gateway_pin === gatewayPin) {
+                    if (service.name.includes(gatewayPin)) {
                         clearTimeout(timeout);
                         for (const ip of service.addresses) {
                             if (ip.match(LocalApiClient.IPV4_REGEXP)) {
@@ -174,7 +174,7 @@ export class LocalApiClient extends ApiClient {
                             }
                         }
                     } else {
-                        logger.debug('Gateway PIN mismatch:', service.txt?.gateway_pin);
+                        logger.debug('Gateway PIN mismatch:', service.name);
                     }
                 },
             );
@@ -190,7 +190,7 @@ export class CloudApiClient extends ApiClient {
     constructor(private readonly host: string) {
         super();
         this.client.defaults.baseURL = 'https://' + host + '/enduser-mobile-web/enduserAPI';
-        if (typeof window !== 'undefined' && this.isAuthenticated === undefined) {
+        if (typeof globalThis.window !== 'undefined' && this.isAuthenticated === undefined) {
             // Try connection with cookie on browser
             this.client.get('/authenticated')
                 .then((result) => this.restoreSession(result.data.authenticated))
@@ -214,9 +214,9 @@ export class CloudApiClient extends ApiClient {
                 this.client.defaults.headers.common['Cookie'] = cookie;
             }
             this.lockdownDelay = 60;
-        } catch (error: any) {
+        } catch (error: unknown) {
             //error.response.data.errorCode === 'AUTHENTICATION_ERROR'
-            if (error.response && error.response.status >= 400 && error.response.status < 500) {
+            if (axios.isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
                 this.isLockedDown = true;
                 logger.warn(
                     'API client will be locked for ' + this.getLockdownString()

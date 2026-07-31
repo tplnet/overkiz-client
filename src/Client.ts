@@ -71,7 +71,7 @@ export default class OverkizClient extends EventEmitter {
         if (this.refreshPeriod < 1800) {
             this.log.warn('WARNING: Setting refreshPeriod lower than 30 minutes is discouraged.');
         }
-        if (this.pollingPeriod < 10 && this.pollingPeriod != 0 && this.service !== 'local') {
+        if (this.pollingPeriod < 10 && this.pollingPeriod !== 0 && this.service !== 'local') {
             this.log.error('ERROR: pollingPeriod must be higher than 10 or equals to 0.');
             this.pollingPeriod = 60;
         }
@@ -261,9 +261,9 @@ export default class OverkizClient extends EventEmitter {
                     }
                 }
                 this.pollingErrorLockDuration = 10;
-            } catch (error: any) {
+            } catch (error: unknown) {
                 logger.error('Polling error -', error);
-                if (error !== null && (error.includes('400') || error.includes('401') || error.includes('404'))) {
+                if (typeof error === 'string' && (error.includes('400') || error.includes('401') || error.includes('404'))) {
                     // If not registered (400/404) or disconnected (401)
                     this.listenerId = null;
                 }

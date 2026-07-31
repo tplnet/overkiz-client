@@ -2,7 +2,6 @@
 import dotenv from 'dotenv';
 import { Client } from './index';
 import { default as Device, State } from './models/Device';
-import Gateway from './models/Gateway';
 
 dotenv.config();
 process.on('unhandledRejection', (error) => console.error('unhandledRejection: ', error));
@@ -29,7 +28,10 @@ async function main() {
 
     console.log(`${setup.devices.length} devices`);
     setup.devices.forEach((device: Device) => {
-        console.log(`${device.parent ? ' ' : ''}\x1b[34m${device.label}\x1b[0m (${device.definition.uiClass} > ${device.definition.widgetName})`);
+        const prefix = device.parent ? ' ' : '';
+        console.log(
+            `${prefix}\x1b[34m${device.label}\x1b[0m (${device.definition.uiClass} > ${device.definition.widgetName})`,
+        );
         device.sensors.forEach((sensor: Device) => console.log(`\t - \x1b[34m${sensor.label}\x1b[0m (${sensor.definition.widgetName})`));
         device.on('states', (states) => {
             console.log(device.label + ' states updated');
