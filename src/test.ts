@@ -39,7 +39,8 @@ async function main() {
         });
     });
 
-    process.openStdin().addListener('data', async (d) => {
+    const stdin = process.stdin as NodeJS.ReadStream;
+    stdin.on('data', async (d: Buffer | string) => {
         const data = d.toString().trim();
         switch (data) {
             case 'a':
