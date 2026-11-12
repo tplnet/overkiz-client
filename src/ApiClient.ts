@@ -2,7 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 import { EventEmitter } from 'events';
 import { logger, interceptor } from './Client';
 import https from 'https';
+import tls from 'tls';
 import bonjour from 'bonjour';
+import { OVERKIZ_ROOT_CA } from './OverkizRootCA';
 
 export default class ApiClient extends EventEmitter {
     public readonly client: AxiosInstance = axios.create();
@@ -48,14 +50,10 @@ export default class ApiClient extends EventEmitter {
                                 return this.request(options, false);
                             }
                         }
-                    } else if (error.response.status === 429 && json && json.errorCode === 'QUOTA_EXCEEDED' && reconnect) {
-                        // The quota is tied to the login session: a fresh login
-                        // clears it. Force a re-login and retry once.
-                        this.connectPromise = undefined;
-                        this.isAuthenticated = false;
-                        logger.debug('Quota exceeded, forcing re-login:', msg);
-                        this.emit('disconnect');
-                        return this.request(options, false);
+                    } else if (error.response.status === 429) {
+                        // Per-session rate limit of the Overkiz cloud API. Do NOT re-login to reset
+                        // the quota (that circumvents the limit and risks an account lock).
+                        logger.warn('Rate limit reached (' + options.method?.toUpperCase() + ' ' + options.url + '):', msg);
                     }
                     //logger.debug(msg);
                     throw msg;
@@ -139,15 +137,27 @@ export default class ApiClient extends EventEmitter {
 
 
 export class LocalApiClient extends ApiClient {
+    private insecureTls = false;
+
+    /**
+     * Disable TLS certificate verification (only as a fallback if the gateway certificate
+     * is not accepted with the Overkiz root CA).
+     */
+    public setInsecureTls(insecure: boolean) {
+        this.insecureTls = insecure;
+    }
+
     static IPV4_REGEXP = new RegExp(/^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm);
     static PIN_REGEXP = new RegExp(/^[0-9]{4}-[0-9]{4}-[0-9]{4}$/gm);
 
     protected async authenticate(user: string, password: string): Promise<void> {
         let domain;
+        let expectedHost: string | undefined;
         if (user.match(LocalApiClient.IPV4_REGEXP)) {
             domain = user;
         } else if (user.match(LocalApiClient.PIN_REGEXP)) {
             domain = 'gateway-' + user + '.local';
+            expectedHost = domain;
             if (typeof process === 'object') {
                 // mDNS lookup on nodeJS only
                 try {
@@ -163,9 +173,18 @@ export class LocalApiClient extends ApiClient {
         }
         this.client.defaults.baseURL = 'https://' + domain + ':8443/enduser-mobile-web/1/enduserAPI';
         this.client.defaults.headers.common['Authorization'] = 'Bearer ' + password;
-        this.client.defaults.httpsAgent = new https.Agent({
-            rejectUnauthorized: false,
-        });
+        if (this.insecureTls) {
+            logger.warn('TLS certificate verification of the local gateway is disabled (tlsInsecure).');
+            this.client.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+        } else {
+            // Trust the Overkiz root CA as recommended by Somfy. The gateway certificate is issued
+            // for gateway-<pin>.local, so check the host name against that (we may connect by IP).
+            this.client.defaults.httpsAgent = new https.Agent({
+                ca: OVERKIZ_ROOT_CA,
+                servername: expectedHost,
+                checkServerIdentity: (_host, cert) => expectedHost ? tls.checkServerIdentity(expectedHost, cert) : undefined,
+            });
+        }
         // Test API endpoint to validate credentials
         const response = await this.client.get('/apiVersion');
         logger.debug(response.data);
@@ -181,7 +200,9 @@ export class LocalApiClient extends ApiClient {
                 { type: 'kizboxdev' },
                 (service) => {
                     logger.debug('Gateway service found:', service.name);
-                    if (service.name.includes(gatewayPin)) {
+                    // Somfy: host and service name are not reliable, the TXT record gateway_pin has to match.
+                    const txtPin = service.txt?.['gateway_pin'];
+                    if (txtPin ? txtPin === gatewayPin : service.name.includes(gatewayPin)) {
                         clearTimeout(timeout);
                         for (const ip of service.addresses) {
                             if (ip.match(LocalApiClient.IPV4_REGEXP)) {

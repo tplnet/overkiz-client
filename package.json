@@ -1,7 +1,7 @@
 {
   "name": "@tplnet/overkiz-client",
   "displayName": "Overkiz API Client",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Overkiz API client for Node (maintained fork of dubocr/overkiz-client)",
   "author": "Romain DUBOC",
   "license": "Apache-2.0",

@@ -13,6 +13,10 @@ export let logger;
 export let interceptor;
 
 const EXEC_TIMEOUT = 2 * 60 * 1000;
+// Cloud API: POST /setup/devices/states/refresh and GET /setup/devices are limited to 1 call per day and session
+const CLOUD_REFRESH_MINUTES = 24 * 60;
+// setInterval() overflows above 2^31-1 ms
+const MAX_TIMER_SECONDS = Math.floor(2147483647 / 1000);
 
 
 function getApiClient(service: string): ApiClient {
@@ -65,12 +69,17 @@ export default class OverkizClient extends EventEmitter {
         // Default values
         this.execPollingPeriod = config['execPollingPeriod'] || 5; // Poll for execution events every 5 seconds by default (in seconds)
         this.pollingPeriod = config['pollingPeriod'] || 60; // Poll for events every 60 seconds by default (in seconds)
-        // Refresh device states every 30 minutes by default (in minutes). 0 disables the periodic refresh.
-        this.refreshPeriod = (config['refreshPeriod'] ?? 30) * 60;
         this.service = config['service'] || 'somfy_europe';
+        // Periodic full-state refresh (in minutes, 0 = disabled). The cloud API allows the bulk
+        // state refresh only once per day and session, so default to once a day there.
+        this.refreshPeriod = (config['refreshPeriod'] ?? (this.isLocal ? 30 : CLOUD_REFRESH_MINUTES)) * 60;
+        this.refreshPeriod = Math.min(this.refreshPeriod, MAX_TIMER_SECONDS);
 
         if (this.refreshPeriod === 0) {
             this.log.info('refreshPeriod is 0: periodic full-state refresh disabled.');
+        } else if (!this.isLocal && this.refreshPeriod < CLOUD_REFRESH_MINUTES * 60) {
+            this.log.warn('WARNING: refreshPeriod below ' + CLOUD_REFRESH_MINUTES + ' minutes exceeds the cloud API rate limit'
+                + ' (1 state refresh per day) and leads to 429 QUOTA_EXCEEDED errors.');
         } else if (this.refreshPeriod < 1800) {
             this.log.warn('WARNING: Setting refreshPeriod lower than 30 minutes is discouraged.');
         }
@@ -100,6 +109,9 @@ export default class OverkizClient extends EventEmitter {
         };
 
         this.api = getApiClient(this.service);
+        if (this.api instanceof LocalApiClient && config['tlsInsecure']) {
+            this.api.setInsecureTls(true);
+        }
         if (config['user'] && config['user']) {
             this.api.setCredentials(config['user'], config['password']);
         }
@@ -114,6 +126,11 @@ export default class OverkizClient extends EventEmitter {
             this.setRefreshTaskPeriod(0);
             this.setPollingTaskPeriod(0);
         });
+    }
+
+    /** True when talking to the local API of the gateway (developer mode). */
+    public get isLocal(): boolean {
+        return this.service.toLowerCase() === 'local';
     }
 
     public connect(user: string, password: string) {
@@ -159,6 +176,14 @@ export default class OverkizClient extends EventEmitter {
             return await this.execute(oid, execution);
         }
         try {
+            if (this.isLocal && oid !== 'apply') {
+                // The local API only offers /exec/apply (no high priority, no persisted action groups)
+                if (oid === 'apply/highPriority') {
+                    oid = 'apply';
+                } else {
+                    throw new Error('Not supported by the local API: /exec/' + oid);
+                }
+            }
             const data = await this.api.post('/exec/' + oid, execution);
             this.executionPool[data.execId] = execution;
 
@@ -260,7 +285,8 @@ export default class OverkizClient extends EventEmitter {
                     } else if (event.name === 'RefreshAllDevicesStatesCompletedEvent') {
                         this.refreshLock = false;
                         logger.debug('Refresh all states completed');
-                        this.refreshDevices().catch((error) => logger.error(error));
+                        // Changed states arrive as DeviceStateChangedEvent. Do not re-read all devices here:
+                        // GET /setup/devices is limited to once per day and session on the cloud API.
                     }
                 }
                 this.pollingErrorLockDuration = 10;
@@ -340,23 +366,33 @@ export default class OverkizClient extends EventEmitter {
     }
 
     public async getActionGroups(): Promise<Array<ActionGroup>> {
+        if (this.isLocal) {
+            logger.warn('Scenarios (action groups) are not available with the local API.');
+            return [];
+        }
         return this.api.get('/actionGroups');
     }
 
     public async refreshAllStates(devices: Array<string> = []) {
+        if (this.isLocal) {
+            // The local API has no state refresh endpoint, but reading the devices is not rate limited
+            await this.refreshDevices();
+            return;
+        }
         this.refreshLock = true;
-        await this.api.post('/setup/devices/states/refresh', devices).catch(() => null);
+        await this.api.post('/setup/devices/states/refresh', devices).catch((error) => logger.warn('State refresh failed:', error));
 
-        // In case 'RefreshAllDevicesStatesCompletedEvent' was not triggered before 30 sec, refresh manually
-        setTimeout(() => {
-            if (this.refreshLock) {
-                this.refreshLock = false;
-                this.refreshDevices().catch((error) => logger.error(error));
-            }
-        }, 30 * 1000);
+        // Changed states arrive as DeviceStateChangedEvent. No fallback re-read of all devices here,
+        // GET /setup/devices is limited to once per day and session on the cloud API.
+        setTimeout(() => this.refreshLock = false, 30 * 1000);
     }
 
     public async refreshDeviceStates(deviceURL: string) {
+        if (this.isLocal) {
+            // Not available with the local API, states are pushed through events anyway
+            logger.debug('Device state refresh not available with the local API:', deviceURL);
+            return;
+        }
         await this.api.post('/setup/devices/' + encodeURIComponent(deviceURL) + '/states/refresh');
     }
 
