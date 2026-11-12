@@ -10,7 +10,9 @@ export default class Action extends EventEmitter {
     }
 
     addCommands(commands: Array<Command>) {
-        this.commands.forEach(command => {
+        // Merge the NEW commands: same name replaces parameters (latest wins),
+        // otherwise append. (Upstream iterated this.commands, dropping new ones.)
+        commands.forEach(command => {
             const existing = this.commands.find((cmd) => cmd.name === command.name);
             if(existing) {
                 existing.parameters = command.parameters;

@@ -48,6 +48,14 @@ export default class ApiClient extends EventEmitter {
                                 return this.request(options, false);
                             }
                         }
+                    } else if (error.response.status === 429 && json && json.errorCode === 'QUOTA_EXCEEDED' && reconnect) {
+                        // The quota is tied to the login session: a fresh login
+                        // clears it. Force a re-login and retry once.
+                        this.connectPromise = undefined;
+                        this.isAuthenticated = false;
+                        logger.debug('Quota exceeded, forcing re-login:', msg);
+                        this.emit('disconnect');
+                        return this.request(options, false);
                     }
                     //logger.debug(msg);
                     throw msg;
@@ -80,7 +88,15 @@ export default class ApiClient extends EventEmitter {
                 throw new Error('Invalid credentials provided');
             }
             this.connectPromise = this.authenticate(this.user, this.password);
-            await this.connectPromise;
+            try {
+                await this.connectPromise;
+            } catch (error) {
+                // Do not cache a failed login, otherwise every later request
+                // re-awaits the same rejection and the client never recovers
+                // from a transient network/DNS error.
+                this.connectPromise = undefined;
+                throw error;
+            }
             if (!this.isAuthenticated) {
                 this.isAuthenticated = true;
                 this.emit('connect');
