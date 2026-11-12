@@ -1,0 +1,6 @@
+@tplnet/overkiz-client
+Copyright Romain DUBOC and contributors (original work: https://github.com/dubocr/overkiz-client)
+Modifications Copyright 2026 tplnet
+
+This is a modified fork of dubocr/overkiz-client, licensed under the Apache License 2.0.
+Changes compared to the original are recorded in the Git history and CHANGELOG.

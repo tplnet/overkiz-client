@@ -1,16 +1,16 @@
 {
-  "name": "overkiz-client",
+  "name": "@tplnet/overkiz-client",
   "displayName": "Overkiz API Client",
-  "version": "1.0.23",
-  "description": "Overkiz API client plugin for Node",
+  "version": "1.1.0",
+  "description": "Overkiz API client for Node (maintained fork of dubocr/overkiz-client)",
   "author": "Romain DUBOC",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dubocr/overkiz-client.git"
+    "url": "git+https://github.com/tplnet/overkiz-client.git"
   },
   "bugs": {
-    "url": "http://github.com/dubocr/overkiz-client/issues"
+    "url": "https://github.com/tplnet/overkiz-client/issues"
   },
   "engines": {
     "node": ">=12.4.0"
@@ -21,14 +21,13 @@
     "test": "npm run build && node --es-module-specifier-resolution=node ./dist/test.js",
     "clean": "rimraf ./dist",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build && npm version patch --m 'Release %s'",
-    "postpublish": "npm run clean"
+    "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
     "tahoma",
     "cozytouch"
   ],
-  "homepage": "https://github.com/dubocr/overkiz-client#readme",
+  "homepage": "https://github.com/tplnet/overkiz-client#readme",
   "dependencies": {
     "axios": "^1.19.0",
     "bonjour": "^3.5.1",
@@ -46,5 +45,18 @@
     "rimraf": "^6.1.3",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
+  },
+  "contributors": [
+    "tplnet (fork maintainer)"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
