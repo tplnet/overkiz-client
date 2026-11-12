@@ -7,3 +7,4 @@
 * Fix: unhandled rejection (process exit) when the device refresh after `RefreshAllDevicesStatesCompletedEvent` failed (upstream PR #12)
 * Fix: on `429 QUOTA_EXCEEDED`, re-login and retry once (quota is tied to the session; idea from maximekduval/homebridge-tahoma)
 * Feature: `refreshPeriod: 0` disables the periodic full-state refresh
+* CI also tests Node.js 26
