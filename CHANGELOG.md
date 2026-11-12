@@ -1,3 +1,8 @@
+## 1.2.1 (2026-11-12)
+
+* Security: axios ^1.21.1 (GHSA-vh66-26gq-q6x8, GHSA-9fr6-4gfg-395g, GHSA-c29m-xwm3-cm6r), pulls follow-redirects 1.16.3 (GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c, GHSA-mrwp-f3q8-3g9p)
+* Dev dependencies: `npm audit fix`, override minimatch ^11.0.8 (GHSA-g3hv-75wg-m249) – `npm audit` reports 0 vulnerabilities
+
 ## 1.2.0 (2026-11-12)
 
 Aligned with the Overkiz cloud API rate limits and the Somfy TaHoma Developer Mode (local API) specification.
