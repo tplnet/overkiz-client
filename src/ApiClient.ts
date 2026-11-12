@@ -8,7 +8,7 @@ import { OVERKIZ_ROOT_CA } from './OverkizRootCA';
 
 export default class ApiClient extends EventEmitter {
     public readonly client: AxiosInstance = axios.create();
-    private connectPromise?: Promise<void>;
+    protected connectPromise?: Promise<void>;
     protected isAuthenticated?: boolean;
 
     private user?: string;
@@ -59,12 +59,21 @@ export default class ApiClient extends EventEmitter {
                     throw msg;
                 } else if (error.message) {
                     logger.debug('Error:', error.message);
+                    this.onNetworkError(error);
                     throw error.message;
                 } else {
                     logger.debug('Error:', error);
                     throw error;
                 }
             });
+    }
+
+    /**
+     * Called when a request failed without a response (connection refused, timeout, host unreachable...).
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected onNetworkError(error): void {
+        return;
     }
 
     public setCredentials(user: string, password: string) {
@@ -137,7 +146,20 @@ export default class ApiClient extends EventEmitter {
 
 
 export class LocalApiClient extends ApiClient {
+    private static NETWORK_ERRORS = ['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'EAI_AGAIN'];
     private insecureTls = false;
+    private discoveredByPin = false;
+
+    /**
+     * Gateway found by PIN (mDNS): on network errors, forget the connection so that the next request
+     * discovers the gateway again (its IP address may have changed, e.g. new DHCP lease).
+     */
+    protected onNetworkError(error) {
+        if (this.discoveredByPin && LocalApiClient.NETWORK_ERRORS.includes(error.code) && this.connectPromise) {
+            logger.debug('Gateway unreachable (' + error.code + '), will search it again on next request');
+            this.connectPromise = undefined;
+        }
+    }
 
     /**
      * Disable TLS certificate verification (only as a fallback if the gateway certificate
@@ -158,6 +180,7 @@ export class LocalApiClient extends ApiClient {
         } else if (user.match(LocalApiClient.PIN_REGEXP)) {
             domain = 'gateway-' + user + '.local';
             expectedHost = domain;
+            this.discoveredByPin = true;
             if (typeof process === 'object') {
                 // mDNS lookup on nodeJS only
                 try {
@@ -193,9 +216,22 @@ export class LocalApiClient extends ApiClient {
     async findGatewayIP(gatewayPin: string) {
         const mdns = bonjour();
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject('Search timeout after 10 seconds');
-            }, 10 * 1000);
+            let done = false;
+            // Always close the mDNS socket once the search is over (found or timed out)
+            const finish = (error?: string, ip?: string) => {
+                if (done) {
+                    return;
+                }
+                done = true;
+                clearTimeout(timeout);
+                mdns.destroy();
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(ip);
+                }
+            };
+            const timeout = setTimeout(() => finish('Search timeout after 10 seconds'), 10 * 1000);
             mdns.find(
                 { type: 'kizboxdev' },
                 (service) => {
@@ -203,12 +239,10 @@ export class LocalApiClient extends ApiClient {
                     // Somfy: host and service name are not reliable, the TXT record gateway_pin has to match.
                     const txtPin = service.txt?.['gateway_pin'];
                     if (txtPin ? txtPin === gatewayPin : service.name.includes(gatewayPin)) {
-                        clearTimeout(timeout);
-                        for (const ip of service.addresses) {
-                            if (ip.match(LocalApiClient.IPV4_REGEXP)) {
-                                logger.debug('Gateway IPv4 is ' + ip);
-                                resolve(ip);
-                            }
+                        const ip = service.addresses.find((address) => address.match(LocalApiClient.IPV4_REGEXP));
+                        if (ip) {
+                            logger.debug('Gateway IPv4 is ' + ip);
+                            finish(undefined, ip);
                         }
                     } else {
                         logger.debug('Gateway PIN mismatch:', service.name);

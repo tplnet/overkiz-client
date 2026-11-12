@@ -1,3 +1,12 @@
+## 1.3.0 (2026-11-12)
+
+* Change: local API polls events every 5 s (executions: 2 s) by default instead of 60 s / 5 s – changes made with a remote or the TaHoma app show up in HomeKit within seconds. Cloud defaults unchanged
+* Fix: back-off after event polling errors is capped at 5 minutes (was doubling without limit, so polling could stall for hours after a gateway reboot)
+* Fix: mDNS gateway search closes its socket when done (leaked one UDP socket per (re)login)
+* Fix: gateway configured by PIN is searched again after a network error (new IP address, e.g. DHCP), instead of retrying the old address until restart
+* Fix: limit of 10 simultaneous executions was never applied (execution pool length was always 0)
+* Fix: credentials check tested `user` twice instead of `user` and `password`
+
 ## 1.2.1 (2026-11-12)
 
 * Security: axios ^1.21.1 (GHSA-vh66-26gq-q6x8, GHSA-9fr6-4gfg-395g, GHSA-c29m-xwm3-cm6r), pulls follow-redirects 1.16.3 (GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c, GHSA-mrwp-f3q8-3g9p)

@@ -15,6 +15,8 @@ export let interceptor;
 const EXEC_TIMEOUT = 2 * 60 * 1000;
 // Cloud API: POST /setup/devices/states/refresh and GET /setup/devices are limited to 1 call per day and session
 const CLOUD_REFRESH_MINUTES = 24 * 60;
+// Upper bound (in seconds) of the back-off after event polling errors, e.g. while the gateway reboots
+const MAX_POLLING_ERROR_LOCK = 300;
 // setInterval() overflows above 2^31-1 ms
 const MAX_TIMER_SECONDS = Math.floor(2147483647 / 1000);
 
@@ -49,7 +51,7 @@ export default class OverkizClient extends EventEmitter {
 
     private fetchLock = false;
     private refreshLock = false;
-    private executionPool: Execution[] = [];
+    private executionPool: Record<string, Execution> = {};
 
     private devices: Array<Device> = new Array<Device>();
 
@@ -67,9 +69,11 @@ export default class OverkizClient extends EventEmitter {
         super();
         logger = log;
         // Default values
-        this.execPollingPeriod = config['execPollingPeriod'] || 5; // Poll for execution events every 5 seconds by default (in seconds)
-        this.pollingPeriod = config['pollingPeriod'] || 60; // Poll for events every 60 seconds by default (in seconds)
         this.service = config['service'] || 'somfy_europe';
+        // Event polling (in seconds). The local API has no rate limit (Somfy: at most once per second),
+        // so poll faster there; the cloud keeps 60 s. During executions poll every execPollingPeriod.
+        this.execPollingPeriod = config['execPollingPeriod'] || (this.isLocal ? 2 : 5);
+        this.pollingPeriod = config['pollingPeriod'] || (this.isLocal ? 5 : 60);
         // Periodic full-state refresh (in minutes, 0 = disabled). The cloud API allows the bulk
         // state refresh only once per day and session, so default to once a day there.
         this.refreshPeriod = (config['refreshPeriod'] ?? (this.isLocal ? 30 : CLOUD_REFRESH_MINUTES)) * 60;
@@ -112,7 +116,7 @@ export default class OverkizClient extends EventEmitter {
         if (this.api instanceof LocalApiClient && config['tlsInsecure']) {
             this.api.setInsecureTls(true);
         }
-        if (config['user'] && config['user']) {
+        if (config['user'] && config['password']) {
             this.api.setCredentials(config['user'], config['password']);
         }
 
@@ -169,7 +173,7 @@ export default class OverkizClient extends EventEmitter {
     */
     async execute(oid, execution) {
         //logger.debug(JSON.stringify(execution));
-        if (this.executionPool.length >= 10) {
+        if (Object.keys(this.executionPool).length >= 10) {
             // Avoid EXEC_QUEUE_FULL (max 10 commands simultaneous)
             // Postpone in 10 sec
             await this.delay(10 * 1000);
@@ -298,7 +302,7 @@ export default class OverkizClient extends EventEmitter {
                 }
                 // Will lock the poller in case of unknown error
                 await this.delay(this.pollingErrorLockDuration * 1000);
-                this.pollingErrorLockDuration *= 2;
+                this.pollingErrorLockDuration = Math.min(this.pollingErrorLockDuration * 2, MAX_POLLING_ERROR_LOCK);
             }
         }
         if (this.listenerId === null) {
@@ -309,7 +313,7 @@ export default class OverkizClient extends EventEmitter {
                 logger.error('Registration error -', error);
                 // Will lock the poller in case of error
                 await this.delay(this.pollingErrorLockDuration * 1000);
-                this.pollingErrorLockDuration *= 2;
+                this.pollingErrorLockDuration = Math.min(this.pollingErrorLockDuration * 2, MAX_POLLING_ERROR_LOCK);
             }
 
         }
