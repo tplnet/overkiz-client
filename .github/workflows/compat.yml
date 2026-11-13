@@ -1,0 +1,29 @@
+name: CVE check
+# Runs every Monday and on demand (Actions > CVE check > Run workflow).
+# Fails on any known vulnerability in the runtime dependencies; dev tools are reported only.
+# GitHub notifies the repository owner by e-mail when a scheduled run fails.
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['package.json', 'package-lock.json', '.github/workflows/compat.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: CVE check (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Runtime dependencies (fails on any vulnerability)
+        run: npm audit --omit=dev --audit-level=low
+      - name: All dependencies incl. dev tools (report only)
+        run: npm audit || true

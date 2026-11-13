@@ -2,6 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@tplnet/overkiz-client)](https://www.npmjs.com/package/@tplnet/overkiz-client)
 [![CI](https://github.com/tplnet/overkiz-client/actions/workflows/ci.yml/badge.svg)](https://github.com/tplnet/overkiz-client/actions/workflows/ci.yml)
+[![CVE check](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml/badge.svg)](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml)
 [![License](https://img.shields.io/npm/l/@tplnet/overkiz-client)](LICENSE)
 
 A Node.js client for the **Overkiz API**, the platform behind **Somfy TaHoma**, Connexoon, **Atlantic / Thermor / Sauter Cozytouch**, Hitachi Hi Kumo, Flexom and Rexel Energeasy.
@@ -21,6 +22,7 @@ It talks either to the **local API** of your TaHoma gateway (Somfy *Developer Mo
 - [Usage](#usage)
 - [Cloud rate limits](#cloud-rate-limits)
 - [Troubleshooting](#troubleshooting)
+- [Security](#security)
 - [Releasing (maintainers)](#releasing-maintainers)
 - [License](#license)
 
@@ -198,10 +200,22 @@ The client does **not** log in again to reset the quota, as that would circumven
 
 Issues: <https://github.com/tplnet/overkiz-client/issues>
 
+## Security
+
+The client is kept free of **known vulnerabilities (CVEs)**:
+
+- The [CVE check](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml) workflow runs `npm audit` **weekly and on every dependency change** – any known vulnerability in the runtime dependencies fails the check.
+- **Every release** runs the same check before the version is staged on npm.
+- **Dependabot** opens weekly pull requests for dependency and GitHub Actions updates.
+- Compatibility with the newest Homebridge release is checked in [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma#compatibility-and-security), which uses this client.
+
+Found a security issue? Please report it privately via GitHub (*Security* → *Report a vulnerability*) instead of a public issue.
+
 ## Releasing (maintainers)
 
 ```sh
-npm version patch   # or minor / major – creates an annotated tag vX.Y.Z
+npm audit --omit=dev   # must report 0 vulnerabilities
+npm version patch      # or minor / major – creates an annotated tag vX.Y.Z
 git push --follow-tags
 ```
 
