@@ -1,5 +1,6 @@
 name: CVE check
-# Runs every Monday and on demand (Actions > CVE check > Run workflow).
+# Runs every Monday, on demand (Actions > CVE check > Run workflow) and on pull requests that
+# change dependencies (e.g. from Dependabot) – merge them when this check and CI are green.
 # Fails on any known vulnerability in the runtime dependencies; dev tools are reported only.
 # GitHub notifies the repository owner by e-mail when a scheduled run fails.
 on:
@@ -8,6 +9,8 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
+    paths: ['package.json', 'package-lock.json', '.github/workflows/compat.yml']
+  pull_request:
     paths: ['package.json', 'package-lock.json', '.github/workflows/compat.yml']
 
 permissions:

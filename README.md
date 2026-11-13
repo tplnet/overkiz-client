@@ -206,7 +206,7 @@ The client is kept free of **known vulnerabilities (CVEs)**:
 
 - The [CVE check](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml) workflow runs `npm audit` **weekly and on every dependency change** – any known vulnerability in the runtime dependencies fails the check.
 - **Every release** runs the same check before the version is staged on npm.
-- **Dependabot** opens weekly pull requests for dependency and GitHub Actions updates.
+- **Dependabot** opens weekly pull requests for dependency and GitHub Actions updates. Each of them runs CI and the CVE check – when the checks are green, the update can simply be merged.
 - Compatibility with the newest Homebridge release is checked in [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma#compatibility-and-security), which uses this client.
 
 Found a security issue? Please report it privately via GitHub (*Security* → *Report a vulnerability*) instead of a public issue.
