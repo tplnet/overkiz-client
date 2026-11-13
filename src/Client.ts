@@ -295,14 +295,20 @@ export default class OverkizClient extends EventEmitter {
                 }
                 this.pollingErrorLockDuration = 10;
             } catch (error: unknown) {
-                logger.error('Polling error -', error);
-                if (typeof error === 'string' && (error.includes('400') || error.includes('401') || error.includes('404'))) {
-                    // If not registered (400/404) or disconnected (401)
+                if (typeof error === 'string' && error.includes('400') && error.includes('No registered event listener')) {
+                    // Expected after a gateway restart or session change: register a new listener right away
+                    logger.info('Event listener expired (gateway restarted?), registering a new one');
                     this.listenerId = null;
+                } else {
+                    logger.error('Polling error -', error);
+                    if (typeof error === 'string' && (error.includes('400') || error.includes('401') || error.includes('404'))) {
+                        // If not registered (400/404) or disconnected (401)
+                        this.listenerId = null;
+                    }
+                    // Will lock the poller in case of unknown error
+                    await this.delay(this.pollingErrorLockDuration * 1000);
+                    this.pollingErrorLockDuration = Math.min(this.pollingErrorLockDuration * 2, MAX_POLLING_ERROR_LOCK);
                 }
-                // Will lock the poller in case of unknown error
-                await this.delay(this.pollingErrorLockDuration * 1000);
-                this.pollingErrorLockDuration = Math.min(this.pollingErrorLockDuration * 2, MAX_POLLING_ERROR_LOCK);
             }
         }
         if (this.listenerId === null) {

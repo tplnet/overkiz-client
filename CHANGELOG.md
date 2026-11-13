@@ -1,3 +1,9 @@
+## 1.3.1 (2026-11-13)
+
+* Local API: after an outage (e.g. power loss or restart of the gateway) the client keeps trying the gateway's last known IP address when mDNS does not find it, instead of falling back to `gateway-<pin>.local` (not resolvable on many systems) – reconnects faster
+* Local API: clearer log messages – the outage is logged once ("Gateway not reachable … Retrying"), the recovery as "Gateway reachable again"; updated help text and link for the gateway search; `tlsInsecure` warning only once
+* The expected `400 No registered event listener` after a gateway restart is logged as info and a new listener is registered immediately (no error, no back-off)
+
 ## 1.3.0 (2026-11-12)
 
 * Change: local API polls events every 5 s (executions: 2 s) by default instead of 60 s / 5 s – changes made with a remote or the TaHoma app show up in HomeKit within seconds. Cloud defaults unchanged

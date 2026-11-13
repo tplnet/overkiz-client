@@ -148,7 +148,12 @@ export default class ApiClient extends EventEmitter {
 export class LocalApiClient extends ApiClient {
     private static NETWORK_ERRORS = ['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'EAI_AGAIN'];
     private insecureTls = false;
+    private insecureTlsWarned = false;
     private discoveredByPin = false;
+    // Last IPv4 address the gateway answered on (PIN mode): used when mDNS does not find it again
+    private lastKnownAddress?: string;
+    // True while the gateway is unreachable, to log the outage once instead of on every retry
+    private outage = false;
 
     /**
      * Gateway found by PIN (mDNS): on network errors, forget the connection so that the next request
@@ -156,7 +161,10 @@ export class LocalApiClient extends ApiClient {
      */
     protected onNetworkError(error) {
         if (this.discoveredByPin && LocalApiClient.NETWORK_ERRORS.includes(error.code) && this.connectPromise) {
-            logger.debug('Gateway unreachable (' + error.code + '), will search it again on next request');
+            if (!this.outage) {
+                this.outage = true;
+                logger.warn('Gateway not reachable (' + error.code + ') - it may be offline or restarting. Retrying...');
+            }
             this.connectPromise = undefined;
         }
     }
@@ -186,9 +194,17 @@ export class LocalApiClient extends ApiClient {
                 try {
                     domain = await this.findGatewayIP(user);
                 } catch (error) {
-                    logger.warn('No gateway found on your network:', error);
-                    logger.warn('Please check gateway pin number and make sur developer mode is activated.');
-                    logger.warn('For more information: https://developer.somfy.com/developer-mode');
+                    if (this.lastKnownAddress) {
+                        // Known gateway (e.g. restarting): keep trying its last address instead of the .local name,
+                        // which many systems cannot resolve
+                        logger.debug('Gateway not found via mDNS (' + error + '), trying its last known address ' + this.lastKnownAddress);
+                        domain = this.lastKnownAddress;
+                    } else {
+                        logger.warn('No gateway found on your network:', error);
+                        logger.warn('Please check the gateway PIN and make sure Developer Mode is enabled in the TaHoma app,'
+                            + ' or use the gateway IP address instead of the PIN.');
+                        logger.warn('More information: https://github.com/Somfy-Developer/Somfy-TaHoma-Developer-Mode');
+                    }
                 }
             }
         } else {
@@ -197,7 +213,10 @@ export class LocalApiClient extends ApiClient {
         this.client.defaults.baseURL = 'https://' + domain + ':8443/enduser-mobile-web/1/enduserAPI';
         this.client.defaults.headers.common['Authorization'] = 'Bearer ' + password;
         if (this.insecureTls) {
-            logger.warn('TLS certificate verification of the local gateway is disabled (tlsInsecure).');
+            if (!this.insecureTlsWarned) {
+                this.insecureTlsWarned = true;
+                logger.warn('TLS certificate verification of the local gateway is disabled (tlsInsecure).');
+            }
             this.client.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
         } else {
             // Trust the Overkiz root CA as recommended by Somfy. The gateway certificate is issued
@@ -211,6 +230,13 @@ export class LocalApiClient extends ApiClient {
         // Test API endpoint to validate credentials
         const response = await this.client.get('/apiVersion');
         logger.debug(response.data);
+        if (this.discoveredByPin && domain.match(LocalApiClient.IPV4_REGEXP)) {
+            this.lastKnownAddress = domain;
+        }
+        if (this.outage) {
+            this.outage = false;
+            logger.info('Gateway reachable again at ' + domain);
+        }
     }
 
     async findGatewayIP(gatewayPin: string) {
