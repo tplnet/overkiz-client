@@ -1,3 +1,7 @@
+## 1.3.2 (2026-11-13)
+
+* Fix: an execution is removed as soon as it reaches a terminal state (COMPLETED, FAILED, TIMED_OUT, NOT_TRANSMITTED). The local API does not send `timeToNextState: -1` on completion, so finished executions stayed in the pool for 2 minutes: a wrong `TIMED_OUT` was reported after a successful command, the device was considered busy (state updates ignored) and event polling stayed at the faster execution rate. The safety timeout is now cleared when an execution ends
+
 ## 1.3.1 (2026-11-13)
 
 * Local API: after an outage (e.g. power loss or restart of the gateway) the client keeps trying the gateway's last known IP address when mDNS does not find it, instead of falling back to `gateway-<pin>.local` (not resolvable on many systems) – reconnects faster

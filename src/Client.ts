@@ -13,6 +13,7 @@ export let logger;
 export let interceptor;
 
 const EXEC_TIMEOUT = 2 * 60 * 1000;
+const TERMINAL_STATES = [ExecutionState.COMPLETED, ExecutionState.FAILED, ExecutionState.TIMED_OUT, ExecutionState.NOT_TRANSMITTED];
 // Cloud API: POST /setup/devices/states/refresh and GET /setup/devices are limited to 1 call per day and session
 const CLOUD_REFRESH_MINUTES = 24 * 60;
 // Upper bound (in seconds) of the back-off after event polling errors, e.g. while the gateway reboots
@@ -52,6 +53,7 @@ export default class OverkizClient extends EventEmitter {
     private fetchLock = false;
     private refreshLock = false;
     private executionPool: Record<string, Execution> = {};
+    private executionTimeouts: Record<string, NodeJS.Timeout> = {};
 
     private devices: Array<Device> = new Array<Device>();
 
@@ -195,18 +197,24 @@ export default class OverkizClient extends EventEmitter {
             this.setPollingTaskPeriod(this.execPollingPeriod);
 
             // Auto remove execution in case of timeout (eg: listener event missed, listener registration fails)
-            setTimeout(() => {
+            this.executionTimeouts[data.execId] = setTimeout(() => {
                 const execution = this.executionPool[data.execId];
                 if (execution) {
                     execution.onStateUpdate(ExecutionState.TIMED_OUT, null);
-                    delete this.executionPool[data.execId];
                 }
+                this.removeExecution(data.execId);
             }, EXEC_TIMEOUT);
 
             return data.execId;
         } catch (error) {
             throw new ExecutionError(ExecutionState.FAILED, error);
         }
+    }
+
+    private removeExecution(execId: string) {
+        delete this.executionPool[execId];
+        clearTimeout(this.executionTimeouts[execId]);
+        delete this.executionTimeouts[execId];
     }
 
     private setRefreshTaskPeriod(period: number) {
@@ -281,9 +289,10 @@ export default class OverkizClient extends EventEmitter {
                         const execution = this.executionPool[event.execId];
                         if (execution) {
                             execution.onStateUpdate(event.newState, event);
-                            if (event.timeToNextState === -1) {
-                                // No more state expected for this execution
-                                delete this.executionPool[event.execId];
+                            // No more state expected: the gateway signals it with timeToNextState -1 (cloud),
+                            // the local API does not always do so on a terminal state
+                            if (event.timeToNextState === -1 || TERMINAL_STATES.includes(event.newState)) {
+                                this.removeExecution(event.execId);
                             }
                         }
                     } else if (event.name === 'RefreshAllDevicesStatesCompletedEvent') {
