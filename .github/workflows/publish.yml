@@ -28,6 +28,8 @@ jobs:
         run: npm install -g npm@latest && npm --version
       - name: Check tag matches package.json version
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: Check release notes in CHANGELOG.md
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > /dev/null
       - run: npm ci
       - name: CVE check (runtime dependencies)
         run: npm audit --omit=dev --audit-level=low
@@ -48,4 +50,6 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: |
+          node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
