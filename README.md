@@ -12,6 +12,8 @@ It talks either to the **local API** of your TaHoma gateway (Somfy *Developer Mo
 > This is a maintained fork of [dubocr/overkiz-client](https://github.com/dubocr/overkiz-client) by Romain Duboc.
 > It is used by [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma). See [CHANGELOG.md](CHANGELOG.md) for the changes compared to the original.
 
+> **Note:** Private hobby project, developed in spare time with the help of AI tools. Use at your own risk; support is best effort. See the [disclaimer](#disclaimer).
+
 ## Contents
 
 - [Features](#features)
@@ -24,6 +26,7 @@ It talks either to the **local API** of your TaHoma gateway (Somfy *Developer Mo
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
 - [Releasing (maintainers)](#releasing-maintainers)
+- [Disclaimer](#disclaimer)
 - [License](#license)
 
 ## Features
@@ -224,6 +227,15 @@ The version becomes public only after approval with 2FA/passkey: npmjs.com → p
 (the id is shown in the workflow run summary and by `npm stage list <package>`).
 
 Release notes: before tagging, describe the changes in a `## X.Y.Z` section at the top of `CHANGELOG.md`. `npm version` refuses to run without it, and the workflow uses this section as the description of the GitHub release (and stops before publishing if it is missing). Start each entry with what changes for the user, technical details after it; with several entries, group them under `### Added`, `### Changed`, `### Fixed` and `### Security`. The release also lists what was checked before it went out (newest Homebridge release, no known vulnerabilities, tested Node.js versions). Pre-release versions (e.g. `1.4.0-beta.1`) are published under the npm tag `next` and marked as pre-release on GitHub. Existing releases can be (re)filled with *Actions* → *Release notes* → *Run workflow* (tag or `all`).
+
+## Disclaimer
+
+This is a private development project. It exists to keep the library compatible with current Node.js and Homebridge releases, to apply security updates, to add features and to fix bugs.
+
+- It is developed in spare time and with the help of AI tools. Every change goes through the automated checks described under [Security](#security) and is tested with real devices where possible, but mistakes can still happen.
+- **Use at your own risk.** The library is provided as is, without any warranty (see the [Apache License 2.0](LICENSE)).
+- Questions, bug reports and feature requests are welcome and are handled on a best-effort basis. There is no guaranteed response time and no guarantee that a request will be implemented.
+- This project is not affiliated with or endorsed by Somfy, Overkiz, Apple or the Homebridge project. All product names are trademarks of their respective owners.
 
 ## License
 
