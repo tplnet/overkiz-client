@@ -4,20 +4,21 @@
  * Used by the release workflows to fill the GitHub release; fails if the version has no (or an empty) section,
  * so that a release cannot go out without a description of its changes.
  *
- * Usage: node scripts/release-notes.mjs <version> [tag]      e.g. node scripts/release-notes.mjs 2.3.9
+ * Usage: node scripts/release-notes.mjs [version] [tag]    e.g. node scripts/release-notes.mjs 2.3.9
+ * Without a version, the version from package.json is used (npm "version" script: checked during `npm version`).
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const version = (process.argv[2] ?? '').replace(/^v/, '');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const version = (process.argv[2] ?? JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version).replace(/^v/, '');
 const tag = process.argv[3] ?? `v${version}`;
 if (!version) {
     console.error('Usage: node scripts/release-notes.mjs <version> [tag]');
     process.exit(2);
 }
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const lines = readFileSync(join(root, 'CHANGELOG.md'), 'utf8').split(/\r?\n/);
 const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const start = lines.findIndex((line) => new RegExp(`^## \\[?v?${escaped}\\]?(\\s|$)`).test(line));

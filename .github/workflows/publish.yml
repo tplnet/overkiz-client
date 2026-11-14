@@ -38,7 +38,12 @@ jobs:
       - name: Stage the package on npm
         shell: bash   # -eo pipefail: fail the step if npm fails despite tee
         run: |
-          npm stage publish 2>&1 | tee stage.log
+          TAG_ARGS=""
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            # pre-releases (e.g. v1.4.0-beta.1) must not become the default version in the Homebridge UI
+            TAG_ARGS="--tag next"
+          fi
+          npm stage publish $TAG_ARGS 2>&1 | tee stage.log
           STAGE_ID=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' stage.log | tail -1 || true)
           {
             echo "### ${GITHUB_REF_NAME} staged on npm – approval required"
@@ -50,6 +55,10 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
+          VERSION="${GITHUB_REF_NAME#v}"
+          FLAGS=""
+          if [[ "$VERSION" == *-* ]]; then FLAGS="--prerelease"; fi
+          node scripts/release-notes.mjs "$VERSION" > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$VERSION" --notes-file release-notes.md --generate-notes $FLAGS

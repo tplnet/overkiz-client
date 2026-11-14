@@ -37,7 +37,7 @@ jobs:
               if gh release view "$tag" > /dev/null 2>&1; then
                 gh release edit "$tag" --notes-file notes.md
               else
-                gh release create "$tag" --title "$tag" --notes-file notes.md --verify-tag
+                gh release create "$tag" --title "${tag#v}" --notes-file notes.md --verify-tag
               fi
               echo "Updated $tag"
             else

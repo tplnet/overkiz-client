@@ -223,7 +223,7 @@ The `Publish to npm` workflow **stages** the version on npm via Trusted Publishi
 The version becomes public only after approval with 2FA/passkey: npmjs.com → package → *Staged Packages*, or `npm stage approve <stage-id>`
 (the id is shown in the workflow run summary and by `npm stage list <package>`).
 
-Release notes: before tagging, describe the changes in a `## X.Y.Z` section at the top of `CHANGELOG.md`. The workflow uses this section as the description of the GitHub release and stops before publishing if it is missing. Existing releases can be (re)filled with *Actions* → *Release notes* → *Run workflow* (tag or `all`).
+Release notes: before tagging, describe the changes in a `## X.Y.Z` section at the top of `CHANGELOG.md`. `npm version` refuses to run without it, and the workflow uses this section as the description of the GitHub release (and stops before publishing if it is missing). Pre-release versions (e.g. `1.4.0-beta.1`) are published under the npm tag `next` and marked as pre-release on GitHub. Existing releases can be (re)filled with *Actions* → *Release notes* → *Run workflow* (tag or `all`).
 
 ## License
 

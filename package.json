@@ -21,7 +21,8 @@
     "test": "npm run build && node --es-module-specifier-resolution=node ./dist/test.js",
     "clean": "rimraf ./dist",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build"
+    "prepublishOnly": "npm run lint && npm run build",
+    "version": "node scripts/release-notes.mjs > /dev/null"
   },
   "keywords": [
     "tahoma",
