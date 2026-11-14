@@ -8,6 +8,7 @@
  * Without a version, the version from package.json is used (npm "version" script: checked during `npm version`).
  * --checks (publish workflow only) adds what was verified before this release: no known vulnerabilities, the Node.js
  * versions of the CI matrix and, if HOMEBRIDGE_VERSION is set, the newest Homebridge release the package was started with.
+ * Same format in all tplnet Homebridge projects.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -56,7 +57,7 @@ if (withChecks) {
     if (pkg.engines?.homebridge) {
         checks.push(`Supports Homebridge \`${pkg.engines.homebridge}\``);
     }
-    parts.push(`### Checked for this release\n\n${checks.map((check) => `* ${check}`).join('\n')}`);
+    parts.push(`### Checked for this release\n\n${checks.map((check) => `- ${check}`).join('\n')}`);
 }
 const repository = process.env.GITHUB_REPOSITORY;
 const link = repository ? `https://github.com/${repository}/blob/${tag}/CHANGELOG.md` : 'CHANGELOG.md';
