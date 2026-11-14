@@ -60,5 +60,5 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           FLAGS=""
           if [[ "$VERSION" == *-* ]]; then FLAGS="--prerelease"; fi
-          node scripts/release-notes.mjs "$VERSION" > release-notes.md
+          node scripts/release-notes.mjs "$VERSION" --checks > release-notes.md
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$VERSION" --notes-file release-notes.md --generate-notes $FLAGS
