@@ -30,6 +30,9 @@ export interface ExecutionStateEvent {
     readonly oldState: ExecutionState;
     readonly timeToNextState: number;
     readonly name;
+    readonly failureType?: string;
+    readonly failureTypeCode?: number;
+    readonly failedCommands?: Array<{ deviceURL: string; rank?: number; failureType?: string; failureTypeCode?: number }>;
 }
 
 export default class Execution extends EventEmitter {
@@ -51,13 +54,21 @@ export default class Execution extends EventEmitter {
 
     onStateUpdate(state, event) {
         this.emit('update', state, event);
-        if (event?.failureType && event?.failedCommands) {
+        const failedCommands = Array.isArray(event?.failedCommands) ? event.failedCommands : [];
+        if (state === ExecutionState.FAILED && failedCommands.length > 0) {
+            // Executions with several devices (e.g. an Apple Home scene): only the devices listed in
+            // failedCommands failed, the others completed. The failure reason may be sent per command
+            // or only for the whole execution (failureType / failureTypeCode).
             this.actions.forEach((action) => {
-                const failure = event.failedCommands.find((c) => c.deviceURL === action.deviceURL);
+                const failure = failedCommands.find((c) => c.deviceURL === action.deviceURL);
                 if (failure) {
-                    action.emit('update', ExecutionState.FAILED, failure);
+                    action.emit('update', ExecutionState.FAILED, {
+                        ...event,
+                        ...failure,
+                        failureType: failure.failureType ?? event.failureType ?? failure.failureTypeCode ?? event.failureTypeCode,
+                    });
                 } else {
-                    action.emit('update', ExecutionState.COMPLETED);
+                    action.emit('update', ExecutionState.COMPLETED, event);
                 }
             });
         } else {

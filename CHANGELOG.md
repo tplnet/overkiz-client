@@ -1,3 +1,10 @@
+## 1.3.3 (2026-11-16)
+
+### Fixed
+
+- Scenes with several devices: when the gateway reports a failure, only the devices it lists as failed get the failure; the others are reported as completed. Before, every device of the scene got the failure, without a reason
+- The failure reason is passed on even when the gateway sends it only for the whole execution (`failureType` / `failureTypeCode`) and not per device
+
 ## 1.3.2 (2026-11-13)
 
 * Fix: an execution is removed as soon as it reaches a terminal state (COMPLETED, FAILED, TIMED_OUT, NOT_TRANSMITTED). The local API does not send `timeToNextState: -1` on completion, so finished executions stayed in the pool for 2 minutes: a wrong `TIMED_OUT` was reported after a successful command, the device was considered busy (state updates ignored) and event polling stayed at the faster execution rate. The safety timeout is now cleared when an execution ends
