@@ -14,6 +14,6 @@ Only the latest released version of `@tplnet/overkiz-client` receives fixes. Ple
 
 Please do **not** open a public issue. Use *Security* → *Report a vulnerability* in this GitHub repository (private vulnerability reporting).
 
-Please include the affected version, a description and, if possible, steps to reproduce. You will get a first response within a few days. Once a fix is released, the issue is published as a GitHub security advisory.
+Please include the affected version, a description and, if possible, steps to reproduce. Reports are handled on a best-effort basis (this is a private hobby project, see the disclaimer in the README); there is no guaranteed response time. Once a fix is released, the issue is published as a GitHub security advisory.
 
 Issues that only affect the Homebridge plugin belong to [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma/security).
