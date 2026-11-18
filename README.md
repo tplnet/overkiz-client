@@ -22,10 +22,9 @@ It talks either to the **local API** of your TaHoma gateway (Somfy *Developer Mo
 - [Local API or cloud?](#local-api-or-cloud)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [Cloud rate limits](#cloud-rate-limits)
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
-- [Releasing (maintainers)](#releasing-maintainers)
+- [Documentation](#documentation)
 - [Disclaimer](#disclaimer)
 - [License](#license)
 
@@ -78,7 +77,7 @@ The client logs in on the first request; event polling starts automatically afte
 | Gateways | TaHoma, TaHoma Switch (not the 1st generation square TaHoma / Connectivity Kit) | all Overkiz based gateways |
 | Credentials | gateway PIN or IP + local token | account e-mail + password |
 | Internet needed | no | yes |
-| Rate limits | none | strict, see [below](#cloud-rate-limits) |
+| Rate limits | none | strict, see [below](https://github.com/tplnet/overkiz-client/blob/master/docs/configuration.md#cloud-rate-limits) |
 | State updates | every 5 s by default | every 60 s by default |
 | Scenarios (action groups) | not available | available |
 
@@ -98,110 +97,15 @@ Details: [Somfy TaHoma Developer Mode](https://github.com/Somfy-Developer/Somfy-
 
 ## Configuration
 
-Options passed as second argument to `new Client(log, config)`:
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `service` | string | `somfy_europe` | `local` or a cloud service, see below |
-| `user` | string | – | Local: gateway PIN or IPv4 address. Cloud: account e-mail |
-| `password` | string | – | Local: token from the TaHoma app. Cloud: account password |
-| `pollingPeriod` | number (s) | `5` local / `60` cloud | Event polling period. Cloud: at least 10, at most 60 recommended |
-| `execPollingPeriod` | number (s) | `2` local / `5` cloud | Polling period while executions are running |
-| `refreshPeriod` | number (min) | `30` local / `1440` cloud | Periodic full state refresh, `0` disables it. Needed for RTS devices and physical remotes that do not report their state |
-| `tlsInsecure` | boolean | `false` | Local only: skip TLS certificate verification (fallback if your gateway's certificate is rejected) |
-| `proxy` | string | – | Optional URL of a forwarding proxy: requests are sent to it with the original host in an `X-Forward-Host` header (not a standard HTTP proxy) |
-
-### Services
-
-| `service` | Platform |
-|---|---|
-| `local` | Somfy local API (TaHoma, TaHoma Switch) |
-| `somfy_europe`, `tahoma`, `tahoma_switch`, `connexoon` | Somfy Europe |
-| `somfy_australia`, `connexoon_rts` | Somfy Australia / Oceania |
-| `somfy_north_america` | Somfy North America |
-| `cozytouch` | Atlantic, Thermor, Sauter Cozytouch |
-| `hi_kumo` | Hitachi Hi Kumo |
-| `flexom` | Bouygues Flexom |
-| `rexel` | Rexel Energeasy Connect |
+All options of `new Client(log, config)` – services, polling and refresh periods, TLS, proxy – and the cloud rate limits are described in **[docs/configuration.md](https://github.com/tplnet/overkiz-client/blob/master/docs/configuration.md)**.
 
 ## Usage
 
-### Read devices and states
-
-```ts
-const devices = await client.getDevices();       // devices with their sensors attached
-const device = devices[0];
-
-device.hasState('core:ClosureState');           // true / false
-device.getState('core:ClosureState')?.value;    // e.g. 0 … 100
-
-device.on('states', (states) => { /* states changed */ });
-```
-
-`getSetup()` returns gateways and devices in one call, `getGateways()` only the gateways.
-
-### Execute a command
-
-```ts
-import { Action, Command, Execution, ExecutionState } from '@tplnet/overkiz-client';
-
-const action = new Action(device.deviceURL, [new Command('setClosure', [50])]);
-action.on('update', (state: ExecutionState, event) => {
-    console.log(`${device.label}: ${state}`);    // TRANSMITTED, IN_PROGRESS, COMPLETED, FAILED …
-});
-
-const execId = await client.execute('apply', new Execution('Half open - my app', action));
-
-// cancel if needed
-await client.cancelExecution(execId);
-```
-
-Available commands depend on the device; see `device.definition.commands`.
-
-### Client events
-
-```ts
-client.on('connect', () => console.log('logged in'));
-client.on('disconnect', () => console.log('session lost, will reconnect'));
-```
-
-### Other methods
-
-| Method | Description |
-|---|---|
-| `refreshAllStates()` | Ask for a full state refresh (local: re-reads all devices) |
-| `refreshDeviceStates(deviceURL)` | Refresh one device (cloud only) |
-| `getStates(deviceURL)` / `getState(deviceURL, name)` | Read states directly from the API |
-| `getActionGroups()` | Scenarios (cloud only, empty list locally) |
-| `getSetupLocation()` | Setup location (cloud only) |
-| `isLocal` | `true` when using the local API |
-
-## Cloud rate limits
-
-The Overkiz cloud limits several endpoints **per session**, for example:
-
-| Endpoint | Limit |
-|---|---|
-| Full state refresh (`/setup/devices/states/refresh`) | 1 per day |
-| Device list (`/setup/devices`) | 1 per day |
-| Executions (`/exec/apply`) | rate limited |
-| Event fetch | 1 per second |
-
-That is why the cloud defaults are a refresh period of one day and a polling period of 60 s.
-If you see `429 QUOTA_EXCEEDED`, increase `refreshPeriod` (or set it to `0`) – or switch to the local API, which has no limits.
-The client does **not** log in again to reset the quota, as that would circumvent the limit and may get the account locked.
+Reading devices and states, executing and cancelling commands, client events and all other methods: **[docs/usage.md](https://github.com/tplnet/overkiz-client/blob/master/docs/usage.md)**.
 
 ## Troubleshooting
 
-| Problem | What to check |
-|---|---|
-| `No gateway found on your network` | Developer Mode enabled? Gateway in the same network/VLAN as the host (mDNS)? Otherwise use the gateway's IP address as `user` |
-| Certificate error with the local API | Set `tlsInsecure: true` and please open an issue with the error message |
-| `401` with the local API | Token revoked or mistyped – generate a new one in the TaHoma app |
-| `429 QUOTA_EXCEEDED` (cloud) | See [Cloud rate limits](#cloud-rate-limits) |
-| Changes made with a remote do not show up | RTS devices cannot report states; keep `refreshPeriod` enabled |
-
-Issues: <https://github.com/tplnet/overkiz-client/issues>
+Gateway not found, certificate errors, `401`, `429 QUOTA_EXCEEDED`, missing remote changes: see **[docs/troubleshooting.md](https://github.com/tplnet/overkiz-client/blob/master/docs/troubleshooting.md)**.
 
 ## Security
 
@@ -214,19 +118,13 @@ The client is kept free of **known vulnerabilities (CVEs)**:
 
 Found a security issue? Please report it privately via GitHub (*Security* → *Report a vulnerability*) instead of a public issue.
 
-## Releasing (maintainers)
+## Documentation
 
-```sh
-npm audit --omit=dev   # must report 0 vulnerabilities
-npm version patch      # or minor / major – creates an annotated tag vX.Y.Z
-git push --follow-tags
-```
-
-The `Publish to npm` workflow **stages** the version on npm via Trusted Publishing (stage-only permission) and creates a GitHub release.
-The version becomes public only after approval with 2FA/passkey: npmjs.com → package → *Staged Packages*, or `npm stage approve <stage-id>`
-(the id is shown in the workflow run summary and by `npm stage list <package>`).
-
-Release notes: before tagging, describe the changes in a `## X.Y.Z` section at the top of `CHANGELOG.md`. `npm version` refuses to run without it, and the workflow uses this section as the description of the GitHub release (and stops before publishing if it is missing). Start each entry with what changes for the user, technical details after it; with several entries, group them under `### Added`, `### Changed`, `### Fixed` and `### Security`. The release also lists what was checked before it went out (newest Homebridge release, no known vulnerabilities, tested Node.js versions). Pre-release versions (e.g. `1.4.0-beta.1`) are published under the npm tag `next` and marked as pre-release on GitHub. Existing releases can be (re)filled with *Actions* → *Release notes* → *Run workflow* (tag or `all`).
+- [Configuration](https://github.com/tplnet/overkiz-client/blob/master/docs/configuration.md) – options, services, cloud rate limits
+- [Usage](https://github.com/tplnet/overkiz-client/blob/master/docs/usage.md) – devices, states, commands, events
+- [Troubleshooting](https://github.com/tplnet/overkiz-client/blob/master/docs/troubleshooting.md)
+- [Releasing](https://github.com/tplnet/overkiz-client/blob/master/docs/releasing.md) – for maintainers
+- [Changelog](CHANGELOG.md)
 
 ## Disclaimer
 
