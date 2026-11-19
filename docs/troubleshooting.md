@@ -8,6 +8,6 @@
 | Certificate error with the local API | Set `tlsInsecure: true` and please open an issue with the error message |
 | `401` with the local API | Token revoked or mistyped – generate a new one in the TaHoma app |
 | `429 QUOTA_EXCEEDED` (cloud) | See [Cloud rate limits](configuration.md#cloud-rate-limits) |
-| Changes made with a remote do not show up | RTS devices cannot report states; keep `refreshPeriod` enabled |
+| Changes made with a remote do not show up | RTS devices cannot report states at all. io devices: keep `refreshPeriod` enabled – locally it catches changes the gateway did not send as events |
 
 Issues: <https://github.com/tplnet/overkiz-client/issues>

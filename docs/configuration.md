@@ -17,7 +17,7 @@ Options passed as second argument to `new Client(log, config)`:
 | `password` | string | – | Local: token from the TaHoma app. Cloud: account password |
 | `pollingPeriod` | number (s) | `5` local / `60` cloud | Event polling period. Cloud: at least 10, at most 60 recommended |
 | `execPollingPeriod` | number (s) | `2` local / `5` cloud | Polling period while executions are running |
-| `refreshPeriod` | number (min) | `30` local / `1440` cloud | Periodic full state refresh, `0` disables it. Needed for RTS devices and physical remotes that do not report their state |
+| `refreshPeriod` | number (min) | `5` local / `1440` cloud | Periodic full state refresh, `0` disables it. Local: re-reads the states the gateway knows and catches changes it did not send as events. Cloud: asks the gateway to query the devices, allowed once a day |
 | `tlsInsecure` | boolean | `false` | Local only: skip TLS certificate verification (fallback if your gateway's certificate is rejected) |
 | `proxy` | string | – | Optional URL of a forwarding proxy: requests are sent to it with the original host in an `X-Forward-Host` header (not a standard HTTP proxy) |
 

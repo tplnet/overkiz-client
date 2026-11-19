@@ -1,3 +1,9 @@
+## 1.3.4 (2026-11-19)
+
+### Changed
+
+- Local API: states are re-read from the gateway every 5 minutes by default (before: 30). The gateway sometimes knows a new state but does not send the change as an event (seen with a garage door operated with its remote) – the state was then wrong for up to 30 minutes. Re-reading is cheap: one request to the gateway in your network, no radio traffic to the devices. A configured `refreshPeriod` is kept; the warning for values below 30 minutes is only shown for cloud services now
+
 ## 1.3.3 (2026-11-16)
 
 ### Fixed

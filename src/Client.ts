@@ -77,8 +77,10 @@ export default class OverkizClient extends EventEmitter {
         this.execPollingPeriod = config['execPollingPeriod'] || (this.isLocal ? 2 : 5);
         this.pollingPeriod = config['pollingPeriod'] || (this.isLocal ? 5 : 60);
         // Periodic full-state refresh (in minutes, 0 = disabled). The cloud API allows the bulk
-        // state refresh only once per day and session, so default to once a day there.
-        this.refreshPeriod = (config['refreshPeriod'] ?? (this.isLocal ? 30 : CLOUD_REFRESH_MINUTES)) * 60;
+        // state refresh only once per day and session, so default to once a day there. Locally it only
+        // re-reads the gateway's states (cheap, no radio traffic) and catches events the gateway did not
+        // deliver, so default to every 5 minutes.
+        this.refreshPeriod = (config['refreshPeriod'] ?? (this.isLocal ? 5 : CLOUD_REFRESH_MINUTES)) * 60;
         this.refreshPeriod = Math.min(this.refreshPeriod, MAX_TIMER_SECONDS);
 
         if (this.refreshPeriod === 0) {
@@ -86,8 +88,6 @@ export default class OverkizClient extends EventEmitter {
         } else if (!this.isLocal && this.refreshPeriod < CLOUD_REFRESH_MINUTES * 60) {
             this.log.warn('WARNING: refreshPeriod below ' + CLOUD_REFRESH_MINUTES + ' minutes exceeds the cloud API rate limit'
                 + ' (1 state refresh per day) and leads to 429 QUOTA_EXCEEDED errors.');
-        } else if (this.refreshPeriod < 1800) {
-            this.log.warn('WARNING: Setting refreshPeriod lower than 30 minutes is discouraged.');
         }
         if (this.pollingPeriod < 10 && this.pollingPeriod !== 0 && this.service !== 'local') {
             this.log.error('ERROR: pollingPeriod must be higher than 10 or equals to 0.');
