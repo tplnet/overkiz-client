@@ -43,6 +43,10 @@ Notes that concern several projects (a change to port, a new rule, what still ha
 - `.github/actions/malware-scan`, `malware.yml` and `scripts/malware-scan.mjs` are identical in all projects; new projects copy them. To update OSV-Scanner, change version and SHA-256 (from `osv-scanner_SHA256SUMS` of the release) in the action in all projects.
 - README: "Malware scan" badge next to the other workflow badges and a bullet in "Compatibility and security" / "Security"; SECURITY.md describes the scan.
 
+### Homebridge UI and log
+- The window *Plugin Logs* (Homebridge UI → *Plugins* → ⋮) only shows log lines that start with the cyan prefix `[<name>]`, where `<name>` is the `name` of the plugin's config entry (without one: the package name, which Homebridge doesn't use for the plugin's lines – the window then stays empty except right after a restart). Every plugin's settings schema therefore has a `name` field with a default, and the plugin logs through the Homebridge logger. Own console output (e.g. a debug console log) uses the same prefix: `` `\x1b[36m[${config.name}]\x1b[39m` ``. Found in `@tplnet/homebridge-heos-multiroom-audio` 1.5.1-beta.8.
+- Open (2026-11-19): check the *Plugin Logs* window in a real Homebridge UI for `@tplnet/homebridge-tahoma` and `homebridge-tahoma-local`. Both schemas already have a required `name` with a default and the plugins don't write to the console directly, so they are probably fine. Remove this item once checked. (`@tplnet/overkiz-client` is a library without settings – not affected.)
+
 ### Release process
 1. Write a `## X.Y.Z (YYYY-MM-DD)` section at the top of `CHANGELOG.md` **before** `npm version`. Each entry starts with what changes for the user (Apple Home, Homebridge UI, log), technical details after it. With several entries, group them under `### Added`, `### Changed`, `### Fixed`, `### Security`.
 2. `npm version patch|minor|major` (the npm `version` script runs `scripts/release-notes.mjs` and refuses to continue without the section), then `git push --follow-tags` (needs annotated tags).
