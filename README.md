@@ -13,6 +13,8 @@ It talks either to the **local API** of your TaHoma gateway (Somfy *Developer Mo
 > This is a maintained fork of [dubocr/overkiz-client](https://github.com/dubocr/overkiz-client) by Romain Duboc.
 > It is used by [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma). See [CHANGELOG.md](CHANGELOG.md) for the changes compared to the original.
 
+> **Focus on Somfy TaHoma:** the client is maintained and tested with a Somfy TaHoma gateway only (local API and Somfy cloud). The other services (Cozytouch, Hi Kumo, Flexom, Rexel) work as before but are not tested. `@tplnet/homebridge-tahoma` will support Somfy TaHoma only from version 3.0.0.
+
 > **Note:** Private hobby project, developed in spare time with the help of AI tools. Use at your own risk; support is best effort. See the [disclaimer](#disclaimer).
 
 ## Contents
