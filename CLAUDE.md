@@ -14,10 +14,10 @@ Maintained fork of dubocr/overkiz-client: Node.js client for the Overkiz API (So
 
 ## Rules for all tplnet Homebridge projects
 
-These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridge-tahoma-local` and `@tplnet/homebridge-denon-heos-audio`. Keep the four projects consistent: a change to the release or check process in one of them goes into all of them.
+These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridge-tahoma-local` and `@tplnet/homebridge-heos-multiroom-audio`. Keep the four projects consistent: a change to the release or check process in one of them goes into all of them.
 
 ### Language and wording
-- Code, comments, README, CHANGELOG and commit messages in English. No German translation of the plugin (exception for now: the German settings form of `@tplnet/homebridge-denon-heos-audio`).
+- Code, comments, README, CHANGELOG and commit messages in English. No German translation of the plugin (exception for now: the German settings form of `@tplnet/homebridge-heos-multiroom-audio`).
 - User-facing text says "Apple Home", not "HomeKit" (README, settings schema, log messages, execution labels). Technical code comments may keep "HomeKit".
 
 ### README
