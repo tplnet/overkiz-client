@@ -40,8 +40,11 @@ jobs:
         run: |
           TAG_ARGS=""
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
-            # pre-releases (e.g. v1.4.0-beta.1) must not become the default version in the Homebridge UI
-            TAG_ARGS="--tag next"
+            # Pre-releases (e.g. v1.4.0-beta.1) must not become the default version in the Homebridge UI.
+            # They get the npm dist-tag named after their identifier (beta, alpha): the Homebridge UI offers
+            # newer betas to users who run a beta only through the dist-tag "beta".
+            PRE_ID="${GITHUB_REF_NAME#*-}"; PRE_ID="${PRE_ID%%.*}"
+            TAG_ARGS="--tag ${PRE_ID}"
           fi
           npm stage publish $TAG_ARGS 2>&1 | tee stage.log
           STAGE_ID=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' stage.log | tail -1 || true)
