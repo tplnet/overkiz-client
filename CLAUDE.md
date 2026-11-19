@@ -16,6 +16,8 @@ Maintained fork of dubocr/overkiz-client: Node.js client for the Overkiz API (So
 
 These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridge-tahoma-local` and `@tplnet/homebridge-heos-multiroom-audio`. Keep the four projects consistent: a change to the release or check process in one of them goes into all of them. New tplnet projects adopt these rules from the start.
 
+Notes that concern several projects (a change to port, a new rule, what still has to be done in another project) are written into this section – in all four `CLAUDE.md` files – not only into a note of a Claude project: every session reads the `CLAUDE.md` of its repository, whichever Claude project it belongs to. When a change in one project still has to be ported to another one, note it here as an open item and remove it once it is done everywhere.
+
 ### Language and wording
 - Code, comments, README, CHANGELOG and commit messages in English. No German translation of the plugin (exception for now: the German settings form of `@tplnet/homebridge-heos-multiroom-audio`).
 - User-facing text says "Apple Home", not "HomeKit" (README, settings schema, log messages, execution labels). Technical code comments may keep "HomeKit".
