@@ -7,8 +7,9 @@ Only the latest released version of `@tplnet/overkiz-client` receives fixes. Ple
 ## How dependencies are checked
 
 - Once a week and on every dependency change the *CVE check* workflow runs `npm audit`: any known vulnerability (CVE / GitHub advisory) in a runtime dependency fails the check; findings in development tools are reported.
+- Once a week, on every dependency change and before every release the *Malware scan* workflow checks all dependencies against the list of known malicious npm packages (OSV-Scanner) and scans the package and the installed dependencies with ClamAV. Any finding fails the check. Dependencies are installed without running their install scripts (`npm ci --ignore-scripts`).
 - Dependabot opens update pull requests weekly, security updates immediately. They run all checks and are merged when green.
-- A release is only published when the audit is clean.
+- A release is only published when the audit and the malware scan are clean.
 
 ## Reporting a vulnerability
 

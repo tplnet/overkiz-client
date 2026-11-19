@@ -14,7 +14,7 @@ Maintained fork of dubocr/overkiz-client: Node.js client for the Overkiz API (So
 
 ## Rules for all tplnet Homebridge projects
 
-These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridge-tahoma-local` and `@tplnet/homebridge-heos-multiroom-audio`. Keep the four projects consistent: a change to the release or check process in one of them goes into all of them.
+These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridge-tahoma-local` and `@tplnet/homebridge-heos-multiroom-audio`. Keep the four projects consistent: a change to the release or check process in one of them goes into all of them. New tplnet projects adopt these rules from the start.
 
 ### Language and wording
 - Code, comments, README, CHANGELOG and commit messages in English. No German translation of the plugin (exception for now: the German settings form of `@tplnet/homebridge-heos-multiroom-audio`).
@@ -34,6 +34,12 @@ These apply to `@tplnet/homebridge-tahoma`, `@tplnet/overkiz-client`, `homebridg
 - Every change and every release: `npm audit --omit=dev` must report 0 vulnerabilities in the runtime dependencies, and plugins must start with the newest Homebridge release (smoke test against `homebridge@latest`, CI on Node.js 22, 24 and 26).
 - Automated in `.github/workflows/compat.yml` (weekly, on dependency changes) and in `publish.yml` (blocks the release). Keep this documented in the README.
 - Dependabot pull requests can be merged when all checks are green.
+
+### Malware scan
+- Dependencies are installed with `npm ci --ignore-scripts` in every workflow (their install scripts never run). Our own packages must not need install scripts.
+- `.github/workflows/malware.yml` (weekly, on dependency changes, on demand) and `publish.yml` (blocks the release) run the composite action `.github/actions/malware-scan`: OSV-Scanner (pinned version, SHA-256 checked) against `package-lock.json` – any known malicious package (OSV `MAL-…`) fails – and ClamAV over the `npm pack` tarball and `node_modules` (signatures cached between runs). The logic is in `scripts/malware-scan.mjs` (`npm run malware`, needs `osv-scanner` and `clamscan` locally).
+- `.github/actions/malware-scan`, `malware.yml` and `scripts/malware-scan.mjs` are identical in all projects; new projects copy them. To update OSV-Scanner, change version and SHA-256 (from `osv-scanner_SHA256SUMS` of the release) in the action in all projects.
+- README: "Malware scan" badge next to the other workflow badges and a bullet in "Compatibility and security" / "Security"; SECURITY.md describes the scan.
 
 ### Release process
 1. Write a `## X.Y.Z (YYYY-MM-DD)` section at the top of `CHANGELOG.md` **before** `npm version`. Each entry starts with what changes for the user (Apple Home, Homebridge UI, log), technical details after it. With several entries, group them under `### Added`, `### Changed`, `### Fixed`, `### Security`.

@@ -33,7 +33,10 @@ jobs:
             tags="$TAG"
           fi
           for tag in $tags; do
-            if node scripts/release-notes.mjs "${tag#v}" "$tag" > notes.md; then
+            rm -f previous.md
+            # keep the "Checked for this release" section written by the publish run
+            gh release view "$tag" --json body --jq .body > previous.md 2> /dev/null || rm -f previous.md
+            if node scripts/release-notes.mjs "${tag#v}" "$tag" --keep-checks=previous.md > notes.md; then
               if gh release view "$tag" > /dev/null 2>&1; then
                 gh release edit "$tag" --notes-file notes.md
               else

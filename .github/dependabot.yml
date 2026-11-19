@@ -21,7 +21,8 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
-    directory: /
+    # also the composite action in .github/actions/ (malware scan)
+    directories: ['/', '/.github/actions/*']
     schedule:
       interval: weekly
       day: monday

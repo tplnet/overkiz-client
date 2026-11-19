@@ -3,6 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@tplnet/overkiz-client)](https://www.npmjs.com/package/@tplnet/overkiz-client)
 [![CI](https://github.com/tplnet/overkiz-client/actions/workflows/ci.yml/badge.svg)](https://github.com/tplnet/overkiz-client/actions/workflows/ci.yml)
 [![CVE check](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml/badge.svg)](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml)
+[![Malware scan](https://github.com/tplnet/overkiz-client/actions/workflows/malware.yml/badge.svg)](https://github.com/tplnet/overkiz-client/actions/workflows/malware.yml)
 [![License](https://img.shields.io/npm/l/@tplnet/overkiz-client)](LICENSE)
 
 A Node.js client for the **Overkiz API**, the platform behind **Somfy TaHoma**, Connexoon, **Atlantic / Thermor / Sauter Cozytouch**, Hitachi Hi Kumo, Flexom and Rexel Energeasy.
@@ -109,10 +110,11 @@ Gateway not found, certificate errors, `401`, `429 QUOTA_EXCEEDED`, missing remo
 
 ## Security
 
-The client is kept free of **known vulnerabilities (CVEs)**:
+The client is kept free of **known vulnerabilities (CVEs)** and **malware**:
 
 - The [CVE check](https://github.com/tplnet/overkiz-client/actions/workflows/compat.yml) workflow runs `npm audit` **weekly and on every dependency change** – any known vulnerability in the runtime dependencies fails the check.
-- **Every release** runs the same check before the version is staged on npm.
+- **Every release** runs the same CVE and malware checks before the version is staged on npm.
+- **Malware scan** ([workflow](https://github.com/tplnet/overkiz-client/actions/workflows/malware.yml), weekly, on every dependency change and before every release): [OSV-Scanner](https://google.github.io/osv-scanner/) checks all dependencies against the list of **known malicious npm packages**, and [ClamAV](https://www.clamav.net/) scans the package as it is published plus all installed dependencies for **malware**. Dependencies are installed with `npm ci --ignore-scripts`, so their install scripts never run in the build.
 - **Dependabot** opens weekly pull requests for dependency and GitHub Actions updates. Each of them runs CI and the CVE check – when the checks are green, the update can simply be merged.
 - Compatibility with the newest Homebridge release is checked in [`@tplnet/homebridge-tahoma`](https://github.com/tplnet/homebridge-tahoma#compatibility-and-security), which uses this client.
 
